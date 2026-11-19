@@ -1,15 +1,3 @@
-# Visual/visualizer.py
-# BAGIAN VISUALISASI GAMBAR: menggambar grid maze beserta kode warnanya.
-#
-# File ini hanya bertugas MENGGAMBAR. Ia tidak menjalankan BFS/DFS dan tidak
-# mengatur waktu animasi. Bagian animasi (loop frame, kecepatan, tombol)
-# cukup memanggil fungsi-fungsi di bawah ini pada setiap frame.
-#
-# Cara pakai (dari bagian animasi / mode perbandingan):
-#     ukuran = hitung_ukuran_sel(maze, 600, 600)
-#     gambar_maze(layar, maze, 20, 20, ukuran,
-#                 frontier=..., dieksplorasi=..., jalur=...)
-
 import pygame
 
 # ---------------------------------------------------------------
@@ -197,13 +185,6 @@ def gambar_panel_samping(layar, x, y, maze, judul, baris_info=()):
     gambar_legenda(layar, x, posisi_y + 28)
 
 
-# ---------------------------------------------------------------
-# DEMO: jalankan dari folder utama project dengan
-#     python -m Visual.visualizer
-#     python -m Visual.visualizer Maze/data/medium_1.txt
-# Tekan C untuk menampilkan/menyembunyikan CONTOH kode warna (data palsu,
-# hanya untuk melihat tampilan). Tekan ESC atau tutup jendela untuk keluar.
-# ---------------------------------------------------------------
 if __name__ == "__main__":
     import sys
     from Maze.maze import baca_maze
