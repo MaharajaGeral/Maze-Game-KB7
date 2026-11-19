@@ -1,8 +1,6 @@
 import pygame
 
-# ---------------------------------------------------------------
-# KODE WARNA (satu tempat, supaya mudah diubah dan konsisten)
-# ---------------------------------------------------------------
+# KODE WARNA
 WARNA_LATAR = (232, 235, 240)      # latar jendela (terang, agar dinding gelap kelihatan)
 WARNA_GARIS = (190, 190, 190)      # garis tipis antar sel
 WARNA_DINDING = (45, 50, 60)       # sel dinding '#'
@@ -15,7 +13,7 @@ WARNA_JALUR = (155, 89, 182)       # ungu    -> jalur akhir
 WARNA_TEKS = (30, 33, 40)          # teks legenda
 WARNA_LABEL = (255, 255, 255)      # huruf S/F di dalam sel
 
-# Daftar legenda: (warna, keterangan)
+# Daftar legenda: (warna dan keterangan)
 LEGENDA = [
     (WARNA_START, "Start (S)"),
     (WARNA_FINISH, "Finish (F)"),
@@ -25,9 +23,8 @@ LEGENDA = [
     (WARNA_DINDING, "Dinding"),
 ]
 
-# ---------------------------------------------------------------
 # UKURAN TATA LETAK (piksel)
-# ---------------------------------------------------------------
+
 MARGIN = 20           # jarak tepi jendela ke isi
 LEBAR_PANEL = 240     # lebar panel samping (judul, info, legenda)
 
