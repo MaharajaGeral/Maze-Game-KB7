@@ -337,19 +337,22 @@ def jalankan_animasi_tunggal(maze, mode, judul):
             teks_jalur = (
                 f"{hasil['panjang_jalur']} langkah" if jalur else "Tidak ditemukan"
             )
+            teks_waktu = f"{hasil['waktu_ms']:.4f} ms"
             status = "Selesai"
         elif jeda:
             teks_jalur = "..."
+            teks_waktu = "..."
             status = "Dijeda"
         else:
             teks_jalur = "..."
+            teks_waktu = "..."
             status = "Berjalan"
 
         info = [
             f"Algoritma: {nama_algoritma}",
-            f"Dikunjungi: {jumlah_tampil} / {total_dikunjungi}",
+            f"Dikunjungi: {jumlah_tampil}",
             f"Panjang jalur: {teks_jalur}",
-            f"Waktu: {hasil['waktu_ms']:.4f} ms",
+            f"Waktu: {teks_waktu}",
             f"Kecepatan: {kecepatan} (Atas/Bawah)",
             f"Status: {status}",
         ]
@@ -587,16 +590,19 @@ def jalankan_perbandingan(maze, judul):
                 jalur=data["jalur"] if sudah_selesai else [],
             )
 
-            # Statistik di bawah maze
+            # Statistik di bawah maze (hasil akhir baru tampil setelah finish tercapai)
             teks_jalur = (
                 f"{data['panjang_jalur']} langkah"
                 if (sudah_selesai and data["jalur"])
                 else ("Tidak ditemukan" if sudah_selesai else "...")
             )
+            teks_waktu = (
+                f"{data['waktu_ms']:.4f} ms (rata-rata 5x)" if sudah_selesai else "..."
+            )
             baris_stat = [
-                ("Simpul dikunjungi", f": {tampil} / {data['jumlah_dikunjungi']}"),
+                ("Simpul dikunjungi", f": {tampil}"),
                 ("Panjang jalur", f": {teks_jalur}"),
-                ("Waktu eksekusi", f": {data['waktu_ms']:.4f} ms (rata-rata 5x)"),
+                ("Waktu eksekusi", f": {teks_waktu}"),
             ]
             for idx, (label_stat, nilai_stat) in enumerate(baris_stat):
                 y_stat = 462 + idx * 24
