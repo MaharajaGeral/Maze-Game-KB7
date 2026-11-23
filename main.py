@@ -320,7 +320,7 @@ def jalankan_animasi_tunggal(maze, mode, judul):
                 elif kejadian.key == pygame.K_SPACE:
                     if not selesai:
                         jeda = not jeda
-                elif kejadian.key == pygame.K_UP:
+                elif kejadian.key == pygame.K_UP and kecepatan < 3:
                     kecepatan += 1
                 elif kejadian.key == pygame.K_DOWN and kecepatan > 1:
                     kecepatan -= 1
@@ -457,17 +457,17 @@ def _buat_ringkasan_perbandingan(hasil_bfs, hasil_dfs):
 
     v_bfs, v_dfs = hasil_bfs["jumlah_dikunjungi"], hasil_dfs["jumlah_dikunjungi"]
     if v_bfs < v_dfs:
-        info_simpul = f"Simpul lebih hemat: BFS ({v_bfs} vs {v_dfs})"
+        info_node = f"Node lebih hemat: BFS ({v_bfs} vs {v_dfs})"
     elif v_dfs < v_bfs:
-        info_simpul = f"Simpul lebih hemat: DFS ({v_dfs} vs {v_bfs})"
+        info_node = f"Node lebih hemat: DFS ({v_dfs} vs {v_bfs})"
     else:
-        info_simpul = f"Simpul dikunjungi sama ({v_bfs})"
+        info_node = f"Node dikunjungi sama ({v_bfs})"
 
     w_bfs, w_dfs = hasil_bfs["waktu_ms"], hasil_dfs["waktu_ms"]
     lebih_cepat = "BFS" if w_bfs < w_dfs else "DFS"
     return [
         f"{info_jalur}  |  {info_biaya}",
-        f"{info_simpul}  |  Lebih cepat: {lebih_cepat}",
+        f"{info_node}  |  Lebih cepat: {lebih_cepat}",
     ]
 
 
@@ -518,7 +518,7 @@ def jalankan_perbandingan(maze, judul):
                 elif kejadian.key == pygame.K_SPACE:
                     if not (selesai_bfs and selesai_dfs):
                         jeda = not jeda
-                elif kejadian.key == pygame.K_UP:
+                elif kejadian.key == pygame.K_UP and kecepatan < 3:
                     kecepatan += 1
                 elif kejadian.key == pygame.K_DOWN and kecepatan > 1:
                     kecepatan -= 1
@@ -622,7 +622,7 @@ def jalankan_perbandingan(maze, judul):
                 else ("Tidak ditemukan" if sudah_selesai else "...")
             )
             teks_waktu = (
-                f"{data['waktu_ms']:.4f} ms (rata-rata 5x)" if sudah_selesai else "..."
+                f"{data['waktu_ms']:.4f} ms" if sudah_selesai else "..."
             )
             teks_biaya = (
                 str(data["biaya_jalur"]) if (sudah_selesai and data["jalur"])
@@ -633,7 +633,7 @@ def jalankan_perbandingan(maze, judul):
             baris_stat = [
                 ("Total biaya", f": {teks_biaya}"),
                 ("Langkah", f": {teks_jalur}"),
-                ("Simpul dikunjungi", f": {tampil}"),
+                ("Node dikunjungi", f": {tampil}"),
                 ("Frontier maksimum", f": {teks_frontier}"),
                 ("Memori puncak", f": {teks_memori}"),
                 ("Waktu eksekusi", f": {teks_waktu}"),
