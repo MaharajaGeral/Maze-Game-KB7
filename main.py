@@ -11,6 +11,9 @@ from Visual.visualizer import (
     hitung_tata_letak,
     gambar_maze,
     gambar_panel_samping,
+    WARNA_FRONTIER,
+    WARNA_DIEKSPLORASI,
+    WARNA_JALUR,
     WARNA_LATAR,
     WARNA_GARIS,
     WARNA_DINDING,
@@ -62,32 +65,39 @@ def path_maze(ukuran, nomor):
 
 
 def ukur_algoritma(fungsi, maze, jumlah_ulang=5):
-    """Jalankan algoritma beberapa kali dan hitung rata-rata waktu eksekusi (ms)."""
-    hasil = None
+    """Mengukur waktu dan memori algoritma."""
+
     total_detik = 0.0
 
+    # Mengukur waktu eksekusi
     for _ in range(jumlah_ulang):
         mulai = time.perf_counter()
-        hasil = fungsi(maze)
+        fungsi(maze)
         selesai = time.perf_counter()
+
         total_detik += selesai - mulai
 
     rata_ms = (total_detik / jumlah_ulang) * 1000.0
 
-    # Memori puncak diukur di run terpisah (tracemalloc memperlambat eksekusi,
-    # jadi tidak boleh ikut dalam pengukuran waktu di atas).
+    # Mengukur penggunaan memori secara terpisah
     tracemalloc.start()
     fungsi(maze)
     _, puncak_byte = tracemalloc.get_traced_memory()
     tracemalloc.stop()
 
+    # Mengambil hasil algoritma beserta riwayat frontier
+    hasil = fungsi(maze, rekam=True)
+
     jalur = hasil["jalur"]
     dikunjungi = hasil["dikunjungi"]
+    riwayat_frontier = hasil["riwayat_frontier"]
+
     panjang_jalur = len(jalur) - 1 if jalur else 0
 
     return {
         "jalur": jalur,
         "dikunjungi": dikunjungi,
+        "riwayat_frontier": riwayat_frontier,
         "panjang_jalur": panjang_jalur,
         "jumlah_dikunjungi": len(dikunjungi),
         "waktu_ms": rata_ms,
@@ -96,6 +106,12 @@ def ukur_algoritma(fungsi, maze, jumlah_ulang=5):
         "memori_kb": puncak_byte / 1024.0,
     }
 
+def frontier_saat(data, jumlah_tampil, maze):
+    """Isi frontier (antre/stack) setelah `jumlah_tampil` sel dikunjungi.
+    Sebelum langkah pertama, frontier hanya berisi titik start."""
+    if jumlah_tampil <= 0:
+        return [maze.start]
+    return data["riwayat_frontier"][jumlah_tampil - 1]
 
 def gambar_tombol(
     layar,
@@ -295,6 +311,7 @@ def jalankan_animasi_tunggal(maze, mode, judul):
     font_hint = pygame.font.SysFont(None, 19)
 
     dikunjungi = hasil["dikunjungi"]
+    riwayat_frontier = fungsi(maze, rekam=True)["riwayat_frontier"]
     jalur = hasil["jalur"]
     total_dikunjungi = hasil["jumlah_dikunjungi"]
 
@@ -375,6 +392,7 @@ def jalankan_animasi_tunggal(maze, mode, judul):
             tata["maze_x"],
             tata["maze_y"],
             tata["ukuran_sel"],
+            frontier=frontier_saat(hasil, jumlah_tampil, maze),
             dieksplorasi=dikunjungi[:jumlah_tampil],
             jalur=jalur_tampil,
         )
@@ -420,6 +438,7 @@ def jalankan_animasi_tunggal(maze, mode, judul):
 def _gambar_legenda_ringkas(layar, x, y, font):
     """Gambar legenda warna secara horizontal di bagian bawah layar perbandingan."""
     item = [
+        (WARNA_FRONTIER, "Frontier"),
         (WARNA_DIEKSPLORASI, "Dieksplorasi"),
         (WARNA_JALUR, "Jalur akhir"),
         (WARNA_DINDING, "Dinding"),
@@ -611,6 +630,7 @@ def jalankan_perbandingan(maze, judul):
                 maze_x,
                 maze_y,
                 ukuran_sel,
+                frontier=frontier_saat(data, tampil, maze), 
                 dieksplorasi=data["dikunjungi"][:tampil],
                 jalur=data["jalur"] if sudah_selesai else [],
             )

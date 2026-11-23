@@ -1,10 +1,13 @@
 from collections import deque
 
-def bfs(maze):
+def bfs(maze, rekam=False):
     queue = deque([maze.start])
+
     parent = {maze.start: None}
-    dikunjungi = []          # urutan kunjungan (dipakai animasi)
-    sudah = set()            # untuk cek cepat
+    dikunjungi = []
+    sudah = set()
+
+    riwayat_frontier = []
     frontier_maks = len(queue)
 
     while queue:
@@ -17,6 +20,8 @@ def bfs(maze):
         dikunjungi.append(sekarang)
 
         if sekarang == maze.finish:
+            if rekam:
+                riwayat_frontier.append(list(queue))
             break
 
         for t in maze.tetangga(sekarang):
@@ -26,7 +31,11 @@ def bfs(maze):
 
         frontier_maks = max(frontier_maks, len(queue))
 
+        if rekam:
+            riwayat_frontier.append(list(queue))
+
     jalur = []
+
     if maze.finish in sudah:
         sel = maze.finish
 
@@ -39,6 +48,7 @@ def bfs(maze):
     return {
         "jalur": jalur,
         "dikunjungi": dikunjungi,
+        "riwayat_frontier": riwayat_frontier,
         "biaya": maze.hitung_biaya_jalur(jalur) if jalur else 0,
-        "frontier_maks": frontier_maks,
+        "frontier_maks": frontier_maks
     }

@@ -18,6 +18,7 @@ def animasikan(maze, hasil, nama_algoritma, judul):
 
     dikunjungi = hasil["dikunjungi"]
     jalur = hasil["jalur"]
+    riwayat = hasil["riwayat_frontier"]
 
     jumlah_tampil = 0    # berapa sel dikunjungi yang sudah digambar
     kecepatan = 1        # sel yang ditambah per frame
@@ -59,9 +60,12 @@ def animasikan(maze, hasil, nama_algoritma, judul):
             info.append("Panjang jalur: %d" % (len(jalur) - 1))
             info.append("Tekan R untuk ulang")
 
+        frontier = riwayat[jumlah_tampil - 1] if jumlah_tampil > 0 else [maze.start]
+
         layar.fill(WARNA_LATAR)
         gambar_maze(layar, maze, tata["maze_x"], tata["maze_y"], tata["ukuran_sel"],
-                    dieksplorasi=dikunjungi[:jumlah_tampil], jalur=jalur_tampil)
+                    frontier=frontier, dieksplorasi=dikunjungi[:jumlah_tampil],
+                    jalur=jalur_tampil)
         gambar_panel_samping(layar, tata["panel_x"], tata["panel_y"],
                              maze, judul, info)
         pygame.display.flip()
@@ -75,9 +79,15 @@ if __name__ == "__main__":
     algoritma = sys.argv[2].lower() if len(sys.argv) > 2 else "bfs"
 
     maze = baca_maze(nama_file)
-    if algoritma == "dfs":
-        hasil = dfs(maze)
-    else:
-        hasil = bfs(maze)
 
-    animasikan(maze, hasil, algoritma.upper(), nama_file.split("/")[-1])
+    if algoritma == "dfs":
+        hasil = dfs(maze, rekam=True)
+    else:
+        hasil = bfs(maze, rekam=True)
+
+    animasikan(
+        maze,
+        hasil,
+        algoritma.upper(),
+        nama_file.split("/")[-1]
+    )

@@ -101,8 +101,8 @@ def gambar_maze(layar, maze, x, y, ukuran_sel,
     pygame.draw.rect(layar, WARNA_GARIS,
                      (x, y, maze.lebar * ukuran_sel, maze.tinggi * ukuran_sel))
 
-    tampil_angka = ukuran_sel >= 16
-    font_angka = pygame.font.SysFont(None, int(ukuran_sel * 0.6)) if tampil_angka else None
+    tampil_angka = ukuran_sel >= 14
+    font_angka = pygame.font.SysFont(None, max(13, int(ukuran_sel * 0.6))) if tampil_angka else None
 
     for baris in range(maze.tinggi):
         for kolom in range(maze.lebar):
