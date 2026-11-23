@@ -1,5 +1,6 @@
 import os
 import time
+import tracemalloc
 import pygame
 
 from Maze.maze import baca_maze
@@ -13,6 +14,7 @@ from Visual.visualizer import (
     WARNA_LATAR,
     WARNA_GARIS,
     WARNA_DINDING,
+    WARNA_BIAYA,
     WARNA_START,
     WARNA_FINISH,
     WARNA_DIEKSPLORASI,
@@ -71,6 +73,14 @@ def ukur_algoritma(fungsi, maze, jumlah_ulang=5):
         total_detik += selesai - mulai
 
     rata_ms = (total_detik / jumlah_ulang) * 1000.0
+
+    # Memori puncak diukur di run terpisah (tracemalloc memperlambat eksekusi,
+    # jadi tidak boleh ikut dalam pengukuran waktu di atas).
+    tracemalloc.start()
+    fungsi(maze)
+    _, puncak_byte = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+
     jalur = hasil["jalur"]
     dikunjungi = hasil["dikunjungi"]
     panjang_jalur = len(jalur) - 1 if jalur else 0
@@ -81,6 +91,9 @@ def ukur_algoritma(fungsi, maze, jumlah_ulang=5):
         "panjang_jalur": panjang_jalur,
         "jumlah_dikunjungi": len(dikunjungi),
         "waktu_ms": rata_ms,
+        "biaya_jalur": hasil["biaya"],
+        "frontier_maks": hasil["frontier_maks"],
+        "memori_kb": puncak_byte / 1024.0,
     }
 
 
@@ -338,23 +351,21 @@ def jalankan_animasi_tunggal(maze, mode, judul):
                 f"{hasil['panjang_jalur']} langkah" if jalur else "Tidak ditemukan"
             )
             teks_waktu = f"{hasil['waktu_ms']:.4f} ms"
-            status = "Selesai"
-        elif jeda:
-            teks_jalur = "..."
-            teks_waktu = "..."
-            status = "Dijeda"
+            teks_biaya = str(hasil["biaya_jalur"]) if jalur else "-"
+            teks_frontier = str(hasil["frontier_maks"])
+            teks_memori = f"{hasil['memori_kb']:.1f} KB"
         else:
-            teks_jalur = "..."
-            teks_waktu = "..."
-            status = "Berjalan"
+            teks_jalur = teks_waktu = "..."
+            teks_biaya = teks_frontier = teks_memori = "..."
 
         info = [
             f"Algoritma: {nama_algoritma}",
             f"Dikunjungi: {jumlah_tampil}",
-            f"Panjang jalur: {teks_jalur}",
+            f"Langkah: {teks_jalur}",
+            f"Total biaya: {teks_biaya}",
+            f"Frontier maks: {teks_frontier}",
+            f"Memori puncak: {teks_memori}",
             f"Waktu: {teks_waktu}",
-            f"Kecepatan: {kecepatan} (Atas/Bawah)",
-            f"Status: {status}",
         ]
 
         layar.fill(WARNA_LATAR)
@@ -372,7 +383,9 @@ def jalankan_animasi_tunggal(maze, mode, judul):
         )
 
         # Kontrol di bawah legenda panel samping
-        hint_surf = font_hint.render("SPASI: Jeda | R: Ulang", True, WARNA_TEKS_REDUP)
+        hint_surf = font_hint.render(
+            f"SPASI: Jeda | R: Ulang | Kecepatan: {kecepatan}", True, WARNA_TEKS_REDUP
+        )
         layar.blit(hint_surf, (panel_x, 492))
 
         gambar_tombol(
@@ -407,11 +420,12 @@ def jalankan_animasi_tunggal(maze, mode, judul):
 def _gambar_legenda_ringkas(layar, x, y, font):
     """Gambar legenda warna secara horizontal di bagian bawah layar perbandingan."""
     item = [
-        (WARNA_START, "Start (S)"),
-        (WARNA_FINISH, "Finish (F)"),
         (WARNA_DIEKSPLORASI, "Dieksplorasi"),
         (WARNA_JALUR, "Jalur akhir"),
         (WARNA_DINDING, "Dinding"),
+        (WARNA_BIAYA[1], "Biaya 1"),
+        (WARNA_BIAYA[2], "2"),
+        (WARNA_BIAYA[3], "3"),
     ]
     posisi_x = x
     ukuran = 14
@@ -424,26 +438,37 @@ def _gambar_legenda_ringkas(layar, x, y, font):
 
 
 def _buat_ringkasan_perbandingan(hasil_bfs, hasil_dfs):
-    """Susun satu baris kesimpulan perbandingan BFS vs DFS."""
+    """Susun dua baris kesimpulan perbandingan BFS vs DFS."""
     p_bfs, p_dfs = hasil_bfs["panjang_jalur"], hasil_dfs["panjang_jalur"]
     if p_bfs < p_dfs:
-        info_jalur = f"Jalur lebih pendek: BFS ({p_bfs} vs {p_dfs})"
+        info_jalur = f"Langkah lebih sedikit: BFS ({p_bfs} vs {p_dfs})"
     elif p_dfs < p_bfs:
-        info_jalur = f"Jalur lebih pendek: DFS ({p_dfs} vs {p_bfs})"
+        info_jalur = f"Langkah lebih sedikit: DFS ({p_dfs} vs {p_bfs})"
     else:
-        info_jalur = f"Panjang jalur sama ({p_bfs} langkah)"
+        info_jalur = f"Langkah sama ({p_bfs})"
+
+    b_bfs, b_dfs = hasil_bfs["biaya_jalur"], hasil_dfs["biaya_jalur"]
+    if b_bfs < b_dfs:
+        info_biaya = f"Biaya lebih murah: BFS ({b_bfs} vs {b_dfs})"
+    elif b_dfs < b_bfs:
+        info_biaya = f"Biaya lebih murah: DFS ({b_dfs} vs {b_bfs})"
+    else:
+        info_biaya = f"Biaya total sama ({b_bfs})"
 
     v_bfs, v_dfs = hasil_bfs["jumlah_dikunjungi"], hasil_dfs["jumlah_dikunjungi"]
     if v_bfs < v_dfs:
-        info_simpul = f"Lebih hemat simpul: BFS ({v_bfs} vs {v_dfs})"
+        info_simpul = f"Simpul lebih hemat: BFS ({v_bfs} vs {v_dfs})"
     elif v_dfs < v_bfs:
-        info_simpul = f"Lebih hemat simpul: DFS ({v_dfs} vs {v_bfs})"
+        info_simpul = f"Simpul lebih hemat: DFS ({v_dfs} vs {v_bfs})"
     else:
         info_simpul = f"Simpul dikunjungi sama ({v_bfs})"
 
     w_bfs, w_dfs = hasil_bfs["waktu_ms"], hasil_dfs["waktu_ms"]
     lebih_cepat = "BFS" if w_bfs < w_dfs else "DFS"
-    return f"{info_jalur}  |  {info_simpul}  |  Lebih cepat: {lebih_cepat}"
+    return [
+        f"{info_jalur}  |  {info_biaya}",
+        f"{info_simpul}  |  Lebih cepat: {lebih_cepat}",
+    ]
 
 
 def jalankan_perbandingan(maze, judul):
@@ -462,7 +487,7 @@ def jalankan_perbandingan(maze, judul):
     font_tombol = pygame.font.SysFont(None, 20)
     font_kecil = pygame.font.SysFont(None, 19)
 
-    area_maze = 360
+    area_maze = 300
     ukuran_sel = hitung_ukuran_sel(maze, area_maze, area_maze)
     offset_x = (area_maze - maze.lebar * ukuran_sel) // 2
     offset_y = (area_maze - maze.tinggi * ukuran_sel) // 2
@@ -599,13 +624,22 @@ def jalankan_perbandingan(maze, judul):
             teks_waktu = (
                 f"{data['waktu_ms']:.4f} ms (rata-rata 5x)" if sudah_selesai else "..."
             )
+            teks_biaya = (
+                str(data["biaya_jalur"]) if (sudah_selesai and data["jalur"])
+                else ("-" if sudah_selesai else "...")
+            )
+            teks_frontier = str(data["frontier_maks"]) if sudah_selesai else "..."
+            teks_memori = f"{data['memori_kb']:.1f} KB" if sudah_selesai else "..."
             baris_stat = [
+                ("Total biaya", f": {teks_biaya}"),
+                ("Langkah", f": {teks_jalur}"),
                 ("Simpul dikunjungi", f": {tampil}"),
-                ("Panjang jalur", f": {teks_jalur}"),
+                ("Frontier maksimum", f": {teks_frontier}"),
+                ("Memori puncak", f": {teks_memori}"),
                 ("Waktu eksekusi", f": {teks_waktu}"),
             ]
             for idx, (label_stat, nilai_stat) in enumerate(baris_stat):
-                y_stat = 462 + idx * 24
+                y_stat = 400 + idx * 22
                 layar.blit(font_stat.render(label_stat, True, WARNA_TEKS), (kartu_x + 15, y_stat))
                 layar.blit(font_stat.render(nilai_stat, True, WARNA_TEKS), (kartu_x + 156, y_stat))
 
@@ -621,14 +655,16 @@ def jalankan_perbandingan(maze, judul):
         layar.blit(surf_kecepatan, (806 - surf_kecepatan.get_width(), 563))
 
         if selesai_bfs and selesai_dfs:
-            surf_bawah = font_kecil.render(ringkasan, True, WARNA_AKSEN)
+            surf_bawah = font_kecil.render(ringkasan[0], True, WARNA_AKSEN)
+            surf_bawah2 = font_kecil.render(ringkasan[1], True, WARNA_AKSEN)
+            layar.blit(surf_bawah2, (34, 607))
         else:
             surf_bawah = font_kecil.render(
                 "SPASI: Jeda/Lanjut  |  Atas/Bawah: Kecepatan  |  R: Ulangi  |  ESC: Kembali ke Menu",
                 True,
                 WARNA_TEKS_REDUP,
             )
-        layar.blit(surf_bawah, (34, 594))
+        layar.blit(surf_bawah, (34, 590))
 
         pygame.display.flip()
         jam.tick(30)

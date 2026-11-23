@@ -12,6 +12,11 @@ WARNA_DIEKSPLORASI = (133, 193, 233)  # biru muda -> sudah dieksplorasi
 WARNA_JALUR = (155, 89, 182)       # ungu    -> jalur akhir
 WARNA_TEKS = (30, 33, 40)          # teks legenda
 WARNA_LABEL = (255, 255, 255)      # huruf S/F di dalam sel
+WARNA_BIAYA = {                    # Warna biaya sel jalan: makin coklat = makin mahal
+    1: (245, 245, 245),   # putih       -> biaya 1 (jalan biasa)
+    2: (222, 184, 135),   # coklat muda -> biaya 2 (medan sulit)
+    3: (160, 110, 70),    # coklat tua  -> biaya 3 (medan paling sulit)
+}
 
 # Daftar legenda: (warna dan keterangan)
 LEGENDA = [
@@ -21,6 +26,9 @@ LEGENDA = [
     (WARNA_DIEKSPLORASI, "Sudah dieksplorasi"),
     (WARNA_JALUR, "Jalur akhir"),
     (WARNA_DINDING, "Dinding"),
+    (WARNA_BIAYA[1], "Biaya 1 (jalan biasa)"),
+    (WARNA_BIAYA[2], "Biaya 2 (medan sulit)"),
+    (WARNA_BIAYA[3], "Biaya 3 (medan sulit)"),
 ]
 
 # UKURAN TATA LETAK (piksel)
@@ -52,13 +60,21 @@ def _pilih_warna(maze, baris, kolom, frontier, dieksplorasi, jalur):
         return WARNA_FINISH
     if maze.grid[baris][kolom] == '#':
         return WARNA_DINDING
+    dasar = WARNA_BIAYA.get(maze.biaya[baris][kolom], WARNA_JALAN)
+    # Eksplorasi/jalur dicampur dengan warna biaya supaya biaya tetap terlihat
     if posisi in jalur:
-        return WARNA_JALUR
+        return _campur(dasar, WARNA_JALUR, 0.75)
     if posisi in frontier:
         return WARNA_FRONTIER
     if posisi in dieksplorasi:
-        return WARNA_DIEKSPLORASI
-    return WARNA_JALAN
+        return _campur(dasar, WARNA_DIEKSPLORASI, 0.55)
+    return dasar
+
+
+def _campur(warna_a, warna_b, porsi_b):
+    """Campur dua warna. porsi_b = seberapa banyak warna_b (0.0 - 1.0)."""
+    return tuple(int(a * (1 - porsi_b) + b * porsi_b)
+                 for a, b in zip(warna_a, warna_b))
 
 
 def gambar_maze(layar, maze, x, y, ukuran_sel,
@@ -85,6 +101,9 @@ def gambar_maze(layar, maze, x, y, ukuran_sel,
     pygame.draw.rect(layar, WARNA_GARIS,
                      (x, y, maze.lebar * ukuran_sel, maze.tinggi * ukuran_sel))
 
+    tampil_angka = ukuran_sel >= 16
+    font_angka = pygame.font.SysFont(None, int(ukuran_sel * 0.6)) if tampil_angka else None
+
     for baris in range(maze.tinggi):
         for kolom in range(maze.lebar):
             warna = _pilih_warna(maze, baris, kolom,
@@ -94,6 +113,13 @@ def gambar_maze(layar, maze, x, y, ukuran_sel,
             # ukuran_sel - 1 menyisakan 1 piksel untuk garis antar sel
             pygame.draw.rect(layar, warna,
                              (px, py, ukuran_sel - 1, ukuran_sel - 1))
+
+            # Angka biaya hanya untuk medan sulit (2 dan 3)
+            biaya = maze.biaya[baris][kolom]
+            if tampil_angka and biaya >= 2 and (baris, kolom) not in (maze.start, maze.finish):
+                teks = font_angka.render(str(biaya), True, WARNA_TEKS)
+                layar.blit(teks, teks.get_rect(
+                    center=(px + (ukuran_sel - 1) // 2, py + (ukuran_sel - 1) // 2)))
 
     _gambar_label(layar, "S", maze.start, x, y, ukuran_sel)
     _gambar_label(layar, "F", maze.finish, x, y, ukuran_sel)
@@ -109,10 +135,10 @@ def _gambar_label(layar, huruf, posisi, x, y, ukuran_sel):
     layar.blit(teks, teks.get_rect(center=(pusat_x, pusat_y)))
 
 
-def gambar_legenda(layar, x, y, ukuran_kotak=18):
+def gambar_legenda(layar, x, y, ukuran_kotak=16):
     """Gambar keterangan kode warna (kotak warna + tulisan) mulai dari (x, y)."""
     font = pygame.font.SysFont(None, 22)
-    jarak_baris = ukuran_kotak + 8
+    jarak_baris = ukuran_kotak + 4
 
     for i, (warna, keterangan) in enumerate(LEGENDA):
         py = y + i * jarak_baris
@@ -173,13 +199,13 @@ def gambar_panel_samping(layar, x, y, maze, judul, baris_info=()):
     info.extend(baris_info)
     for teks in info:
         layar.blit(font_info.render(teks, True, WARNA_TEKS), (x, posisi_y))
-        posisi_y += 24
+        posisi_y += 20
 
     # Legenda di bawah info
-    posisi_y += 16
+    posisi_y += 10
     layar.blit(font_info.render("Keterangan warna:", True, WARNA_TEKS),
                (x, posisi_y))
-    gambar_legenda(layar, x, posisi_y + 28)
+    gambar_legenda(layar, x, posisi_y + 24)
 
 
 if __name__ == "__main__":
@@ -197,7 +223,7 @@ if __name__ == "__main__":
 
     # Data contoh (palsu) hanya untuk melihat warna; BUKAN hasil BFS/DFS
     sel_jalan = [(b, k) for b in range(maze.tinggi) for k in range(maze.lebar)
-                 if maze.grid[b][k] == '.']
+                 if maze.grid[b][k] not in '#SF']
     contoh_dieksplorasi = sel_jalan[:len(sel_jalan) // 2]
     contoh_frontier = sel_jalan[len(sel_jalan) // 2: len(sel_jalan) // 2 + 4]
     contoh_jalur = sel_jalan[:5]

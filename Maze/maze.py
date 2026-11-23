@@ -6,10 +6,11 @@ ARAH = [(-1, 0), (0, 1), (1, 0), (0, -1)]  # (delta_baris, delta_kolom)
 
 
 class Maze:
-    def __init__(self, grid, start, finish):
+    def __init__(self, grid, start, finish, biaya):
         self.grid = grid          # list 2D berisi karakter
         self.start = start        # (baris, kolom)
         self.finish = finish      # (baris, kolom)
+        self.biaya = biaya        # list 2D biaya masuk tiap sel (0 = dinding/start)
         self.tinggi = len(grid)
         self.lebar = len(grid[0])
 
@@ -31,27 +32,52 @@ class Maze:
                 hasil.append((b, k))
         return hasil
 
+    def biaya_sel(self, posisi):
+        """Biaya untuk MASUK ke sel ini."""
+        baris, kolom = posisi
+        return self.biaya[baris][kolom]
+
+    def hitung_biaya_jalur(self, jalur):
+        """Total biaya = jumlah biaya sel yang dimasuki.
+        Start tidak dihitung, finish dihitung."""
+        return sum(self.biaya_sel(p) for p in jalur[1:])
+
 
 def baca_maze(nama_file):
-    """Baca file txt lalu kembalikan objek Maze."""
+    """Baca file txt lalu kembalikan objek Maze.
+
+    '#' dinding | '1','2','3' sel jalan berbiaya 1/2/3
+    '.' jalan biasa (biaya 1, untuk file lama) | 'S' start | 'F' finish (biaya 1)
+    """
     grid = []
+    biaya = []
     start = None
     finish = None
 
     with open(nama_file, 'r') as f:
-        for i, baris_teks in enumerate(f):
+        for baris_teks in f:
             baris_teks = baris_teks.rstrip('\n')
             if baris_teks == '':
                 continue
             baris = list(baris_teks)
+            baris_biaya = []
             for j, sel in enumerate(baris):
                 if sel == 'S':
                     start = (len(grid), j)
+                    baris_biaya.append(0)
                 elif sel == 'F':
                     finish = (len(grid), j)
+                    baris_biaya.append(1)
+                elif sel in '123':
+                    baris_biaya.append(int(sel))
+                elif sel == '.':
+                    baris_biaya.append(1)
+                else:                       # '#'
+                    baris_biaya.append(0)
             grid.append(baris)
+            biaya.append(baris_biaya)
 
     if start is None or finish is None:
         raise ValueError("Maze harus punya satu 'S' dan satu 'F'")
 
-    return Maze(grid, start, finish)
+    return Maze(grid, start, finish, biaya)
